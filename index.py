@@ -1,9 +1,43 @@
 from pathlib import Path
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_huggingface import HuggingFaceEmbeddings  # <-- updated import
+from langchain_qdrant import QdrantVectorStore
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 pdf_path = Path(__file__).parent / "prep.pdf"
 
 loader = PyPDFLoader(file_path=pdf_path)
 
 docs = loader.load()
-print(docs[10])
+
+
+
+# Splitting the data into smaller chunks
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size = 1000,
+    chunk_overlap = 400
+)
+
+chunks = text_splitter.split_documents(documents=docs)
+
+# Vector Embeddings
+
+embedding_model = HuggingFaceEmbeddings(
+    model_name ="all-MiniLM-L6-v2"
+
+)
+
+
+vector_store = QdrantVectorStore.from_documents(
+    documents = chunks,
+    embedding = embedding_model,
+    url = "http://localhost:6333",
+    collection_name = "First-RAG-Pipeline"
+)
+
+print("Indexing phase completed");
